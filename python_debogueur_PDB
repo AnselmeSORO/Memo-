@@ -1,0 +1,297 @@
+indicemodules |suivant |précédent | Python »     Documentation » La bibliothèque standard Python » Débogage et profilage » 
+Quick search
+  |
+pdb- Le débogueur Python 
+Code source: Lib / pdb.py
+
+Le module pdbdéfinit un débogueur de code source interactif pour les programmes Python. Il prend en charge la définition de points d'arrêt (conditionnels) et d'un pas à pas au niveau de la ligne source, l'inspection des trames de pile, la liste du code source et l'évaluation du code Python arbitraire dans le contexte de n'importe quel cadre de pile. Il prend également en charge le débogage post-mortem et peut être appelé sous le contrôle du programme.
+
+Le débogueur est extensible - il est en fait défini comme la classe Pdb. Ceci est actuellement non documenté mais facile à comprendre en lisant la source. L'interface d'extension utilise les modules bdbet cmd.
+
+L'invite du débogueur est (Pdb). L'utilisation typique pour exécuter un programme sous le contrôle du débogueur est la suivante:
+
+>>>
+>>> import pdb
+>>> import mymodule
+>>> pdb.run('mymodule.test()')
+> <string>(0)?()
+(Pdb) continue
+> <string>(1)?()
+(Pdb) continue
+NameError: 'spam'
+> <string>(1)?()
+(Pdb)
+Modifié dans la version 3.3: La complétion par tabulation via le readlinemodule est disponible pour les commandes et les arguments de commande. Par exemple, les noms globaux et locaux actuels sont proposés comme arguments de la pcommande.
+
+pdb.pypeut également être appelé en tant que script pour déboguer d'autres scripts. Par exemple:
+
+python3 -m pdb myscript.py
+Lorsqu'il est appelé en tant que script, pdb entrera automatiquement dans le débogage post-mortem si le programme en cours de débogage se ferme anormalement. Après le débogage post-mortem (ou après la sortie normale du programme), pdb redémarrera le programme. Le redémarrage automatique préserve l'état de pdb (tels que les points d'arrêt) et est dans la plupart des cas plus utile que de quitter le débogueur lors de la fermeture du programme.
+
+Nouveauté de la version 3.2:pdb.py accepte maintenant une -coption qui exécute les commandes comme si elles étaient données dans un .pdbrcfichier, voir Commandes du débogueur .
+
+Nouveauté de la version 3.7:pdb.py accepte maintenant une -moption permettant d’exécuter des modules de la même manière . Comme avec un script, le débogueur suspendra l'exécution juste avant la première ligne du module.python3 -m
+
+L’utilisation typique d’un programme en cours dans le débogueur consiste à insérer
+
+import pdb; pdb.set_trace()
+à l'emplacement où vous souhaitez accéder au débogueur. Vous pouvez ensuite parcourir le code suivant cette instruction et poursuivre votre exécution sans le débogueur à l'aide de la continuecommande.
+
+Nouveau dans la version 3.7: L'intégré breakpoint(), lorsqu'il est appelé avec les valeurs par défaut, peut être utilisé à la place de .import pdb; pdb.set_trace()
+
+L'utilisation typique pour inspecter un programme bloqué est:
+
+>>>
+>>> import pdb
+>>> import mymodule
+>>> mymodule.test()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "./mymodule.py", line 4, in test
+    test2()
+  File "./mymodule.py", line 3, in test2
+    print(spam)
+NameError: spam
+>>> pdb.pm()
+> ./mymodule.py(3)test2()
+-> print(spam)
+(Pdb)
+Le module définit les fonctions suivantes: chacun entre dans le débogueur d'une manière légèrement différente:
+
+pdb.run( statement , globals = None , locals = None ) 
+Exécutez l' instruction (sous forme de chaîne ou d'objet de code) sous le contrôle du débogueur. L'invite du débogueur apparaît avant l'exécution du code. vous pouvez définir des points d'arrêt et des types continue, ou parcourir l'instruction à l'aide de stepou next(toutes ces commandes sont expliquées ci-dessous). Les arguments optionnels globals et locals spécifient l'environnement dans lequel le code est exécuté; Par défaut, le dictionnaire du module __main__est utilisé. (Voir l'explication du haut- exec()ou eval()fonctions.)
+
+pdb.runeval( expression , globals = None , locals = None ) 
+Evaluez l' expression (sous forme de chaîne ou d'objet de code) sous le contrôle du débogueur. Quand runeval()renvoie, il retourne la valeur de l'expression. Sinon, cette fonction est similaire à run().
+
+pdb.runcall( fonction , * args , ** kwds ) 
+Appelez la fonction (un objet fonction ou méthode, pas une chaîne) avec les arguments donnés. Quand runcall()retourne, il retourne quel que soit l'appel de fonction retourné. L'invite du débogueur apparaît dès que la fonction est entrée.
+
+pdb.set_trace( * , en- tête = aucun ) 
+Entrez le débogueur dans le cadre de la pile appelante. Ceci est utile pour coder en dur un point d'arrêt à un point donné d'un programme, même si le code n'est pas en cours de débogage (par exemple, en cas d'échec d'une assertion). Si donné, l'en- tête est imprimé sur la console juste avant le début du débogage.
+
+Modifié dans la version 3.7: En- tête d' argument composé uniquement de mots clés .
+
+pdb.post_mortem( traceback = None ) 
+Entrez le débogage post-mortem de l' objet traceback donné . Si aucune trace n'est donnée, il utilise l'une des exceptions en cours de traitement (une exception doit être gérée si la valeur par défaut doit être utilisée).
+
+pdb.pm( ) 
+Entrez le débogage post-mortem de la trace trouvée dans sys.last_traceback.
+
+Les run*fonctions et set_trace()sont des alias pour instancier la Pdbclasse et appeler la méthode du même nom. Si vous souhaitez accéder à d'autres fonctionnalités, vous devez le faire vous-même:
+
+class pdb.Pdb( completekey = 'tab' , stdin = None , stdout = None , skip = None , nosigint = False , readrc = True ) 
+Pdb est la classe de débogage.
+
+Les arguments completekey , stdin et stdout sont transmis à la cmd.Cmdclasse sous-jacente ; voir la description ici.
+
+L' argument skip , s'il est fourni, doit être un objet itérable de modèles de noms de modules de style glob. Le débogueur n'interviendra pas dans les cadres provenant d'un module correspondant à l'un de ces modèles. [1]
+
+Par défaut, Pdb définit un gestionnaire pour le signal SIGINT (qui est envoyé lorsque l'utilisateur appuie Ctrl-Csur la console) lorsque vous donnez une continuecommande. Cela vous permet d’entrer de nouveau dans le débogueur en appuyant sur Ctrl-C. Si vous souhaitez que Pdb ne touche pas le gestionnaire SIGINT, définissez nosigint sur true.
+
+La valeur par défaut de l'argument readrc est true et contrôle si Pdb charge les fichiers .pdbrc à partir du système de fichiers.
+
+Exemple d'appel pour activer le traçage avec skip :
+
+import pdb; pdb.Pdb(skip=['django.*']).set_trace()
+Nouveau dans la version 3.1: Le saut argument.
+
+Nouveau dans la version 3.2: L' argument nosigint . Auparavant, Pdb n'avait jamais défini de gestionnaire SIGINT.
+
+Modifié dans la version 3.6: L' argument readrc .
+
+run( statement , globals = None , locals = None ) 
+runeval( expression , globals = None , locals = None ) 
+runcall( fonction , * args , ** kwds ) 
+set_trace( ) 
+Voir la documentation pour les fonctions expliquées ci-dessus.
+
+Commandes du débogueur 
+Les commandes reconnues par le débogueur sont répertoriées ci-dessous. La plupart des commandes peuvent être abrégées en une ou deux lettres, comme indiqué. par exemple , h(elp)signifie que soit hou helppeut être utilisé pour entrer la commande d'aide (mais pas he ou hel, ni Hou Helpni HELP). Les arguments des commandes doivent être séparés par des espaces (espaces ou tabulations). Les arguments facultatifs sont placés entre crochets ( []) dans la syntaxe de la commande; les crochets ne doivent pas être tapés. Les variantes de la syntaxe de commande sont séparées par une barre verticale ( |).
+
+La saisie d’une ligne vierge répète la dernière commande entrée. Exception: si la dernière commande était une listcommande, les 11 lignes suivantes sont répertoriées.
+
+Les commandes que le débogueur ne reconnaît pas sont supposées être des instructions Python et sont exécutées dans le contexte du programme en cours de débogage. Les instructions Python peuvent également être précédées d’un point d’exclamation ( !). C'est un moyen puissant d'inspecter le programme en cours de débogage; il est même possible de changer une variable ou d'appeler une fonction. Lorsqu'une exception se produit dans une telle instruction, le nom de l'exception est imprimé mais l'état du débogueur n'est pas modifié.
+
+Le débogueur prend en charge les alias . Les alias peuvent avoir des paramètres qui permettent un certain niveau d’adaptabilité au contexte examiné.
+
+Plusieurs commandes peuvent être entrées sur une seule ligne, séparées par ;;. (Un seul ;n'est pas utilisé, car il sert de séparateur pour plusieurs commandes d'une ligne transmise à l'analyseur Python.) Aucune intelligence n'est appliquée pour séparer les commandes; l'entrée est divisée à la première ;;paire, même si elle se trouve au milieu d'une chaîne entre guillemets.
+
+Si un fichier .pdbrcexiste dans le répertoire de base de l'utilisateur ou dans le répertoire en cours, il est lu et exécuté comme s'il avait été saisi à l'invite du débogueur. Ceci est particulièrement utile pour les alias. Si les deux fichiers existent, celui du répertoire de base est lu en premier et les alias qui y sont définis peuvent être remplacés par le fichier local.
+
+Modifié dans la version 3.2:.pdbrc peut désormais contenir des commandes qui continuent le débogage, telles que continueou next. Auparavant, ces commandes n'avaient aucun effet.
+
+h(elp) [command]
+Sans argument, affiche la liste des commandes disponibles. Avec une commande comme argument, affichez l'aide sur cette commande. affiche la documentation complète (la docstring du module). Comme l' argument de commande doit être un identifiant, vous devez le saisir pour obtenir de l'aide sur la commande.help pdbpdbhelp exec!
+
+w(here)
+Imprimez une trace de pile, avec le dernier cadre en bas. Une flèche indique le cadre actuel, qui détermine le contexte de la plupart des commandes.
+
+d(own) [count]
+Déplace le nombre d' images actuel (par défaut) vers le bas dans la trace de la pile (vers une image plus récente).
+
+u(p) [count]
+Déplacez le nombre d' images actuel (celui par défaut) dans la trace de pile (vers une image plus ancienne).
+
+b(reak) [([filename:]lineno | function) [, condition]]
+Avec un argument lineno , définissez une pause dans le fichier actuel. Avec un argument de fonction , définissez une pause dans la première instruction exécutable de cette fonction. Le numéro de ligne peut être préfixé par un nom de fichier et deux points, pour spécifier un point d'arrêt dans un autre fichier (probablement celui qui n'a pas encore été chargé). Le fichier est recherché sys.path. Notez que chaque point d'arrêt se voit attribuer un numéro auquel toutes les autres commandes de point d'arrêt font référence.
+
+Si un deuxième argument est présent, il s'agit d'une expression qui doit être évaluée comme étant vraie avant que le point d'arrêt ne soit honoré.
+
+Sans argument, répertoriez toutes les ruptures, y compris pour chaque point de rupture, le nombre de fois que le point de rupture a été touché, le nombre d'ignorants actuel et la condition associée, le cas échéant.
+
+tbreak [([filename:]lineno | function) [, condition]]
+Point d'arrêt temporaire, qui est automatiquement supprimé lors de la première frappe. Les arguments sont les mêmes que pour break.
+
+cl(ear) [filename:lineno | bpnumber [bpnumber ...]]
+Avec l' argument filename: lineno , effacez tous les points d'arrêt de cette ligne. Avec une liste de numéros de points d'arrêt séparés par des espaces, effacez ces points d'arrêt. Sans argument, effacez toutes les pauses (mais demandez d'abord une confirmation).
+
+disable [bpnumber [bpnumber ...]]
+Désactivez les points d'arrêt donnés sous forme de liste de numéros de points d'arrêt séparés par des espaces. La désactivation d'un point d'arrêt signifie que le programme ne peut pas en arrêter l'exécution, mais contrairement à la suppression d'un point d'arrêt, celui-ci reste dans la liste des points d'arrêt et peut être (ré) activé.
+
+enable [bpnumber [bpnumber ...]]
+Activer les points d'arrêt spécifiés.
+
+ignore bpnumber [count]
+Définissez le nombre d'ignorants pour le numéro de point d'arrêt donné. Si nombre est omis, le nombre ignoré est défini sur 0. Un point d'arrêt devient actif lorsque le nombre ignoré est égal à zéro. Lorsque la valeur est différente de zéro, le compte est décrémenté chaque fois que le point d'arrêt est atteint. Le point d'arrêt n'est pas désactivé et toute condition associée est évaluée à true.
+
+condition bpnumber [condition]
+Définissez une nouvelle condition pour le point d'arrêt, une expression qui doit être évaluée comme étant vraie avant que le point d'arrêt ne soit honoré. Si la condition est absente, toute condition existante est supprimée; c'est-à-dire que le point d'arrêt est rendu inconditionnel.
+
+commands [bpnumber]
+Spécifiez une liste de commandes pour le numéro de point d'arrêt bpnumber . Les commandes elles-mêmes apparaissent sur les lignes suivantes. Tapez une ligne contenant juste endpour terminer les commandes. Un exemple:
+
+(Pdb) commands 1
+(com) p some_variable
+(com) end
+(Pdb)
+Pour supprimer toutes les commandes d'un point d'arrêt, tapez-le commandset suivez-le immédiatement avec end; c'est-à-dire, ne donnez pas de commandes.
+
+Sans argument pbnumber , commandsfait référence au dernier ensemble de points d'arrêt.
+
+Vous pouvez utiliser les commandes de points d'arrêt pour redémarrer votre programme. Utilisez simplement la continuecommande, ou step, ou toute autre commande qui reprend l'exécution.
+
+Spécification de toute exécution reprise de commande (a continue, step, next, return, jump, quitet leurs abréviations) met fin à la liste de commandes (comme si cette commande a été immédiatement suivie par la fin). En effet, chaque fois que vous reprenez l'exécution (même avec une simple étape ou une suivante), vous pouvez rencontrer un autre point d'arrêt, qui peut disposer de sa propre liste de commandes, ce qui entraîne des ambiguïtés quant à la liste à exécuter.
+
+Si vous utilisez la commande 'silent' dans la liste, le message habituel relatif à l'arrêt à un point d'arrêt n'est pas imprimé. Cela peut être souhaitable pour les points d'arrêt qui doivent imprimer un message spécifique, puis continuer. Si aucune des autres commandes n'imprime quoi que ce soit, vous ne voyez aucun signe indiquant que le point d'arrêt a été atteint.
+
+s(tep)
+Exécutez la ligne en cours, arrêtez-vous à la première occasion possible (dans une fonction appelée ou sur la ligne suivante de la fonction en cours).
+
+n(ext)
+Continuez l'exécution jusqu'à ce que la ligne suivante de la fonction actuelle soit atteinte ou qu'elle revienne. (La différence entre nextet stepest ce qui steps’arrête à l’intérieur d’une fonction appelée, alors qu’il next exécute les fonctions appelées à une vitesse (presque) complète, s’arrêtant uniquement à la ligne suivante de la fonction en cours.)
+
+unt(il) [lineno]
+Sans argument, continuez l'exécution jusqu'à ce que la ligne avec un nombre supérieur à celui en cours soit atteinte.
+
+Avec un numéro de ligne, continuez l'exécution jusqu'à ce qu'une ligne avec un nombre supérieur ou égal à celui-ci soit atteinte. Dans les deux cas, arrêtez-vous également au retour du cadre actuel.
+
+Modifié dans la version 3.2: Permet de donner un numéro de ligne explicite.
+
+r(eturn)
+Continue execution until the current function returns.
+
+c(ont(inue))
+Continue execution, only stop when a breakpoint is encountered.
+
+j(ump) lineno
+Set the next line that will be executed. Only available in the bottom-most frame. This lets you jump back and execute code again, or jump forward to skip code that you don’t want to run.
+
+It should be noted that not all jumps are allowed – for instance it is not possible to jump into the middle of a for loop or out of a finally clause.
+
+l(ist) [first[, last]]
+List source code for the current file. Without arguments, list 11 lines around the current line or continue the previous listing. With . as argument, list 11 lines around the current line. With one argument, list 11 lines around at that line. With two arguments, list the given range; if the second argument is less than the first, it is interpreted as a count.
+
+The current line in the current frame is indicated by ->. If an exception is being debugged, the line where the exception was originally raised or propagated is indicated by >>, if it differs from the current line.
+
+New in version 3.2: The >> marker.
+
+ll | longlist
+List all source code for the current function or frame. Interesting lines are marked as for list.
+
+New in version 3.2.
+
+a(rgs)
+Print the argument list of the current function.
+
+p expression
+Evaluate the expression in the current context and print its value.
+
+Note print() can also be used, but is not a debugger command — this executes the Python print() function.
+pp expression
+Like the p command, except the value of the expression is pretty-printed using the pprint module.
+
+whatis expression
+Print the type of the expression.
+
+source expression
+Try to get source code for the given object and display it.
+
+New in version 3.2.
+
+display [expression]
+Display the value of the expression if it changed, each time execution stops in the current frame.
+
+Without expression, list all display expressions for the current frame.
+
+New in version 3.2.
+
+undisplay [expression]
+Do not display the expression any more in the current frame. Without expression, clear all display expressions for the current frame.
+
+New in version 3.2.
+
+interact
+Start an interactive interpreter (using the code module) whose global namespace contains all the (global and local) names found in the current scope.
+
+New in version 3.2.
+
+alias [name [command]]
+Create an alias called name that executes command. The command must not be enclosed in quotes. Replaceable parameters can be indicated by %1, %2, and so on, while %* is replaced by all the parameters. If no command is given, the current alias for name is shown. If no arguments are given, all aliases are listed.
+
+Aliases may be nested and can contain anything that can be legally typed at the pdb prompt. Note that internal pdb commands can be overridden by aliases. Such a command is then hidden until the alias is removed. Aliasing is recursively applied to the first word of the command line; all other words in the line are left alone.
+
+As an example, here are two useful aliases (especially when placed in the .pdbrc file):
+
+# Print instance variables (usage "pi classInst")
+alias pi for k in %1.__dict__.keys(): print("%1.",k,"=",%1.__dict__[k])
+# Print instance variables in self
+alias ps pi self
+unalias name
+Delete the specified alias.
+
+! statement
+Execute the (one-line) statement in the context of the current stack frame. The exclamation point can be omitted unless the first word of the statement resembles a debugger command. To set a global variable, you can prefix the assignment command with a global statement on the same line, e.g.:
+
+(Pdb) global list_options; list_options = ['-l']
+(Pdb)
+run [args ...]
+restart [args ...]
+Redémarrez le programme Python débogué. Si un argument est fourni, il est divisé avec shlexet le résultat est utilisé comme nouveau sys.argv. L'historique, les points d'arrêt, les actions et les options du débogueur sont préservés. restartest un alias pour run.
+
+q(uit)
+Quittez le débogueur. Le programme en cours d'exécution est abandonné.
+
+Notes de bas de page
+
+[1]	Le fait qu'une trame soit considérée comme provenant d'un certain module est déterminé par les __name__globales de la trame.
+Table des matières
+pdb - Le débogueur Python
+Commandes du débogueur
+Sujet précédent
+faulthandler - Vider le suivi Python
+
+Sujet suivant
+Les profileurs Python
+
+Cette page
+Signaler un bug
+Afficher la source
+«
+indicemodules |suivant |précédent | Python »     Documentation » La bibliothèque standard Python » Débogage et profilage » 
+Quick search
+  |
+© Copyright 2001-2019, Python Software Foundation. 
+La Python Software Foundation est une société à but non lucratif. S'il vous plaît faire un don. 
+Dernière mise à jour le 15 mai 2019. Vous avez trouvé un bug ? 
+Créé à l'aide de Sphinx 1.8.4.
